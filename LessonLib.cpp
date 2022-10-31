@@ -1,22 +1,38 @@
 #include "LessonLib.hpp"
 
-// std::ios::in
-// std::ios::out
-// std::ios::ate
-// std::ios::binary
+namespace TestLib {
+    Logger* initLogger(const std::string &file_path, bool is_binary) {
+        std::ios::openmode mode = (is_binary) ? std::ios::out | std::ios::binary : std::ios::out;
 
-namespace Lesson {
-    void configOut(const std::string &file_path, const std::ios::openmode &mode) {
-        if (g_out.m_stream.is_open()) {
-            g_out.m_stream.close();
+        // Logger *logger = new Logger {std::ofstream(file_path, mode), is_binary};
+        Logger *logger = new Logger;
+        logger->is_binary = is_binary;
+        logger->log_file.open(file_path, mode);
+        // if (logger->log_file.is_open())
+        if (!logger->log_file) {
+            delete logger;
+            logger = nullptr;
         }
-        if (!file_path.empty()) {
-            g_out.m_stream.open(file_path, mode);
-            g_out.m_mode = mode;
-            char test = '1';
-            if (mode != std::ios::out | std::ios::binary) {
-                g_out.m_stream.write(&test, 1);
-            }
+        return logger;
+    }
+
+    void closeLogger(Logger **logger) {
+        if ((*logger)->log_file) {
+            (*logger)->log_file.close();
         }
+        delete (*logger);
+        (*logger) = nullptr;
+    }
+
+    void old_print(Logger &logger, uint32_t count, ...) {
+        va_list list;
+
+        va_start(list, count);
+
+        for (int i = 0; i < count; i++) {
+            logger.log_file << va_arg(list, int);
+        }
+
+        va_end(list);
     }
 }

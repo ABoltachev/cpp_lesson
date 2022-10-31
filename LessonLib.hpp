@@ -1,62 +1,94 @@
-#ifndef LESSONLIB_H
-#define LESSONLIB_H
+#ifndef TESTLIB_H
+#define TESTLIB_H
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
-#include <vector>
-#include <algorithm>
+#include <cstdarg>
 
-namespace Lesson {
-    struct Logger
-    {
-        std::fstream m_stream;
-        std::ios::openmode m_mode = std::ios::out;
-    } g_out;
+namespace TestLib {
+    struct Logger {
+        std::ofstream log_file;
+        bool is_binary;
+    };
 
-    void configOut(
-        const std::string &file_path="",
-        const std::ios::openmode &mode=std::ios::out
-    );
+    Logger* initLogger(const std::string &file_path, bool is_binary=false);
 
-    template<class... Args>
-    void print(const Logger &log, Args... args);
+    void closeLogger(Logger **logger);
 
-    template<class Head, class... Tail>
-    void print(const Logger &log, Head head, Tail... tail) {
-        if (g_out.m_stream.is_open()) {
-            if (g_out.m_mode == std::ios::binary) {
-                size_t head_size {sizeof(head)};
-                g_out.m_stream
-                    .write(reinterpret_cast<char*>(&head_size), sizeof(uint32_t))
-                    .write(reinterpret_cast<char*>(&head), head_size);
+    template<typename... Args>
+    void getStr(std::stringstream &str_stream, Args... args);
+
+    template<typename Head, typename... Tail>
+    void getStr(
+        std::stringstream &str_stream, const Head &head, Tail... tail
+    ) {
+        str_stream << head << ' ';
+        print(tail...);
+    }
+
+    template<typename Head>
+    void getStr(std::stringstream &str_stream, const Head &head) {
+        str_stream << head;
+        std::cout << str_stream.str();
+    }
+
+    void old_print(Logger &logger, uint32_t count, ...);
+
+    template<typename... Args>
+    void print(Logger &logger, Args... args);
+
+    template<typename Head, typename... Tail>
+    void print(Logger &logger, const Head &head, Tail... tail) {
+        std::cout << head << ' ';
+        if (logger.log_file) {
+            if (logger.is_binary) {
+                uint32_t head_size = sizeof(head);
+                logger.log_file.write(
+                    reinterpret_cast<char*>(&head_size), sizeof(uint32_t)
+                );
+                logger.log_file.write(
+                    reinterpret_cast<const char*>(&head), head_size
+                );
             } else {
-                g_out.m_stream << head << ' ';
+                logger.log_file << head << ' ';
             }
-        } else {
-            std::cout << head << ' ';
         }
-        print(log, tail...);
+        print(logger, tail...);
+    }
+
+    template<typename Head>
+    void print(Logger &logger, const Head &head) {
+        std::cout << head;
+        if (logger.log_file) {
+            if (logger.is_binary) {
+                uint32_t head_size = sizeof(head);
+                logger.log_file.write(
+                    reinterpret_cast<char*>(&head_size), sizeof(uint32_t)
+                );
+                logger.log_file.write(
+                    reinterpret_cast<const char*>(&head), head_size
+                );
+            } else {
+                logger.log_file << head;
+            }
+        }
+        print(logger);
     }
 
     template<>
-    void print(const Logger &log) {
-        static char end = '\n';
-        static uint32_t end_size {1};
-        if (g_out.m_stream.is_open()) {
-            if (g_out.m_mode == std::ios::binary) {
-                g_out.m_stream
-                    .write(reinterpret_cast<char*>(&end_size), sizeof(uint32_t))
-                    .write(&end, 1);
-            } else {
-                g_out.m_stream << end;
+    void print(Logger &logger) {
+        std::cout << std::endl;
+        if (logger.log_file) {
+            if (!logger.is_binary) {
+                logger.log_file << "\n";
             }
-            g_out.m_stream.flush();
-        } else {
-            std::cout << end;
-            std::cout.flush();
+            flush(logger.log_file);
         }
     }
+
+    void readLogFile(/*TODO тут должна быть строка*/);
 }
 
-#endif // LESSONLIB_H
+#endif
