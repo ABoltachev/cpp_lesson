@@ -1,36 +1,37 @@
-#include "integers.hpp"
+#include "employee.hpp"
 
 #include <iostream>
 
 /*
-    В C++ можно перегрузить любой СУЩЕСТВУЮЩИЙ оператор кроме следующих:
-        * тернарный оператор (?:)
-        * опретор sizeof
-        * оператор разрешения области видимости ::
-        * оператор выбора члена .
-
-    Хотя бы один операд должен быть пользовательского типа
-
-    Сигнатуру (количество операндов) изменить нельзя
-
-    Приоритет и ассоциативность для перегруженных операторов сохраняется
-
-    Есть 3 способа перегрузки операторов:
-        * дружественные функции
-        * обычные функции
-        * методы класса. Операторы '=', '[]', '()' и '->' перегружаются только через методы
-
-    По умолчанию создаются 2 конструктора (без аргументов и копирования) и один оператор (копирования)
 */
 
 int main() {
-    TestLib::Method::Integer a = 10;
-    // a = 3 + a; // Не получится потому что нет перегрузки для (int, Integer)
+    std::cout << "Constructing A: \n";
+    TestLib::A a;
 
-    TestLib::Integer var_1(15), var_2 = TestLib::Integer(10);
-    std::cin >> var_1 >> var_2;
-    std::cout << 10 + var_1 << std::endl;
-    std::cout << var_1 + 5 << std::endl;
-    std::cout << var_1 + var_2 << std::endl;
+    std::cout << "Constructing B: \n";
+    TestLib::B b;
+
+    std::cout << "Constructing C: \n";
+    TestLib::C c;
+
+    std::cout << "Constructing D: \n";
+    TestLib::D d;
+
+    TestLib::Employee emp;
+    // emp.getAge();
+
+    TestLib::Child child;
+    // child.getId(); // Ошибка компиляции, непонятно какой метод вызывать
+    child.ParentA::getId();
+
+    TestLib::Human *ptr = new TestLib::Programmer("C++");
+    ptr->print();
+    reinterpret_cast<TestLib::Programmer*>(ptr)->print();
+
+    TestLib::Human &ref = emp;
+    ref.print();
+
+    TestLib::Human obj = emp; // Происходит обрезание данных до родительского класса
     return 0;
 }
