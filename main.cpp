@@ -1,37 +1,27 @@
-#include "employee.hpp"
+#include <testlib/virtual.hpp>
 
 #include <iostream>
 
-/*
-*/
+void report(TestLib::Animal &animal) {
+    std::cout << animal.getName() << " says " << animal.speak() << std::endl;
+}
 
 int main() {
-    std::cout << "Constructing A: \n";
-    TestLib::A a;
+    // TestLib::Animal a; Нельзя создавать объекты абстрактных классов
+    TestLib::Cat cat("Matros");
+    TestLib::Dog dog("Barsik");
 
-    std::cout << "Constructing B: \n";
-    TestLib::B b;
+    // dog.Animal::speak();
 
-    std::cout << "Constructing C: \n";
-    TestLib::C c;
+    report(cat);
+    report(dog);
 
-    std::cout << "Constructing D: \n";
-    TestLib::D d;
+    // TestLib::Child ch;
+    // TestLib::Parent *p = &ch;
+    // ch.getThis()->printType();
+    // p->getThis()->printType();
 
-    TestLib::Employee emp;
-    // emp.getAge();
-
-    TestLib::Child child;
-    // child.getId(); // Ошибка компиляции, непонятно какой метод вызывать
-    child.ParentA::getId();
-
-    TestLib::Human *ptr = new TestLib::Programmer("C++");
-    ptr->print();
-    reinterpret_cast<TestLib::Programmer*>(ptr)->print();
-
-    TestLib::Human &ref = emp;
-    ref.print();
-
-    TestLib::Human obj = emp; // Происходит обрезание данных до родительского класса
-    return 0;
+    // TestLib::ChildB *child = new TestLib::ChildB(7);
+    // TestLib::ParentB *parent = child;
+    // delete parent;
 }
