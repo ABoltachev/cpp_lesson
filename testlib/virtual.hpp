@@ -15,120 +15,69 @@
 #endif
 
 namespace TestLib {
+    class Exception : public std::exception {
+        
+    };
     #pragma region first
-    class TESTLIB_API Animal {
-    protected:
-        std::string m_name;
+    class PoweredDevice {
     public:
-        Animal(std::string name) : m_name(name) {}
-
-        std::string getName() const { return m_name; }
-        virtual const char* speak() const = 0;
+        PoweredDevice(int power) {
+            std::cout << "PoweredDevice: " << power << '\n';
+        }
     };
     
-    class TESTLIB_API Cat : public Animal {
+    class Scanner: virtual public PoweredDevice {
     public:
-        Cat(std::string name) : Animal(name) {}
-
-        const char* speak() const {
-            Animal::speak();
-            return "Meow";
-        } // Сигнатура витруальных методов должна совпадать
+        Scanner(int scanner, int power)
+            : PoweredDevice(power) {
+            std::cout << "Scanner: " << scanner << '\n';
+        }
     };
-
-    class TESTLIB_API Dog : public Animal {
+    
+    class Printer: virtual public PoweredDevice {
     public:
-        Dog(std::string name) : Animal(name) {}
-
-        const char* speak() const { return "Woof"; }
+        Printer(int printer, int power)
+            : PoweredDevice(power) {
+            std::cout << "Printer: " << printer << '\n';
+        }
+    };
+    
+    class Copier: public Scanner, public Printer {
+    public:
+        Copier(int scanner, int printer, int power)
+            : Scanner(scanner, power), Printer(printer, power), PoweredDevice(power) {}
     };
     #pragma endregion first
 
     #pragma region second
-    // class A {
-    // public:
-    //     virtual const char* getName1(int x) { return "A"; }
-    //     virtual const char* getName2(int x) { return "A"; }
-    //     virtual const char* getName3(int x) { return "A"; }
-    // };
+    class Parent {
+    public:
+        Parent() {}
     
-    // class B : public A {
-    // public:
-    //     virtual const char* getName1(short int x) override { return "B"; }  // ошибка компиляции, метод не является переопределением
-    //     virtual const char* getName2(int x) const override { return "B"; }  // ошибка компиляции, метод не является переопределением
-    //     virtual const char* getName3(int x) override { return "B"; }  // всё хорошо, метод является переопределением A::getName3(int)
+        // Перегрузка оператора вывода <<
+        friend std::ostream& operator<<(std::ostream &out, const Parent &p) {
+            // Делегируем выполнение операции вывода методу print()
+            return p.print(out);
+        }
     
-    // };
-
-    // class C {
-    // public:
-    //     virtual const char* getName() { return "A"; }
-    // };
-
-    // class D : public C {
-    // public:
-    //     virtual const char* getName() override final { return "B"; } // всё хорошо, переопределение A::getName()
-    // };
-
-    // class E : public D {
-    // public:
-    //     virtual const char* getName() override { return "C"; } // ошибка компиляции: переопределение метода B::getName(), который является final
-    // };
-
-    // class F {
-    // public:
-    //     virtual const char* getName() { return "A"; }
-    // };
-
-    // class G final : public F { // обратите внимание на модификатор final здесь
-    // public:
-    //     virtual const char* getName() override { return "B"; }
-    // };
+        // Делаем метод print() виртуальным
+        virtual std::ostream& print(std::ostream& out) const {
+            out << "Parent";
+            return out;
+        }
+    };
     
-    // class H : public G { // ошибка компиляции: нельзя наследовать final-класс
-    // public:
-    //     virtual const char* getName() override { return "C"; }
-    // };
-
-    // class TESTLIB_API Parent {
-    // public:
-    //     // Этот метод getThis() возвращает указатель на класс Parent
-    //     virtual Parent* getThis() { std::cout << "called Parent::getThis()\n"; return this; }
-    //     void printType() { std::cout << "returned a Parent\n"; }
-    // };
-
-    // class TESTLIB_API Child : public Parent {
-    // public:
-    //     // Обычно, типы возврата переопределений и виртуальных функций родительского класса должны совпадать.
-    //     // Однако, поскольку Child наследует класс Parent, следующий метод может возвращать Child* вместо Parent*
-    //     virtual Child* getThis() { std::cout << "called Child::getThis()\n";  return this; }
-    //     void printType() { std::cout << "returned a Child\n"; }
-    // };
+    class Child: public Parent {
+    public:
+        Child() {}
+    
+        // Переопределение метода print() для работы с объектами класса Child
+        virtual std::ostream& print(std::ostream& out) const override {
+            out << "Child";
+            return out;
+        }
+    };
     #pragma endregion second
-
-    #pragma region third
-    class TESTLIB_API ParentB {
-    public:
-        virtual ~ParentB() {
-            std::cout << "Calling ~ParentB()" << std::endl;
-        }
-    };
-
-    class TESTLIB_API ChildB : public ParentB {
-    private:
-        int* m_array;
-
-    public:
-        ChildB(int length) {
-            m_array = new int[length];
-        }
-
-        ~ChildB() {
-            std::cout << "Calling ~ChildB()" << std::endl;
-            delete[] m_array;
-        }
-    };
-    #pragma endregion third
 }
 
 #endif // VIRTUAL_H

@@ -1,27 +1,45 @@
 #include <testlib/virtual.hpp>
+#include <stdexcept>
 
 #include <iostream>
 
-void report(TestLib::Animal &animal) {
-    std::cout << animal.getName() << " says " << animal.speak() << std::endl;
+void func() {
+    // throw -1.;
+    auto p =  TestLib::Child();
+    throw p;
+    std::cout << "Test" << std::endl;
 }
 
 int main() {
-    // TestLib::Animal a; Нельзя создавать объекты абстрактных классов
-    TestLib::Cat cat("Matros");
-    TestLib::Dog dog("Barsik");
+    TestLib::Parent *ptr = new TestLib::Child;
+    std::cout << *ptr << std::endl;
 
-    // dog.Animal::speak();
+    dynamic_cast<TestLib::Child*>(ptr)->print(std::cout);
+    std::cout << std::endl;
 
-    report(cat);
-    report(dog);
-
-    // TestLib::Child ch;
-    // TestLib::Parent *p = &ch;
-    // ch.getThis()->printType();
-    // p->getThis()->printType();
-
-    // TestLib::ChildB *child = new TestLib::ChildB(7);
-    // TestLib::ParentB *parent = child;
-    // delete parent;
+    // throw 2;
+    try {
+        // throw 2;
+        throw std::runtime_error("Test");
+        func();
+    }
+    catch (std::runtime_error ex) {
+        ex.what()
+    }
+    catch (TestLib::Parent) {
+        std::cout << "Parent ex\n";
+    }
+    catch (TestLib::Child) {
+        std::cout << "Child ex\n";
+    }
+    catch (float ex) {
+        std::cerr << "Float Exception: " << ex << std::endl;
+    }
+    catch (int ex) {
+        std::cerr << "Exception: " << ex << std::endl;
+    }
+    catch (...) {
+        std::cerr << "Unknown error" << std::endl;
+    }
+    return 0;
 }
