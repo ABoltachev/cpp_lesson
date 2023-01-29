@@ -1,83 +1,83 @@
 #include <iostream>
-#include <deque>
-#include <map>
-#include <string>
-#include <stack>
 
-/*
-Последовательные
-Есть operator[] для const
-    * std::vector
-    * std::array
-    * std::list нет произвольного доступа
-    * std::forward_list нет произвольного доступа
-    * std::deque
-    * std::basic_string
-
-Ассоциативные
-Нет operator[] для const
-    * std::set нет operator[]
-    * std::map
-    * std::multiset нет operator[]
-    * std::multimap
-
-Адаптеры
-    * std::stack
-    * std::queue нет top
-    * std::priority_queue
-
-*/
+#include <testlib/smart_pointer.hpp>
+#include <testlib/timer.hpp>
+#include <testlib/array.hpp>
+#include <memory>
 
 int main() {
-    std::deque<int> deq {10, 15}; // кол-во элементов
-    const std::deque<int> deq_2 {deq}; // копирование
-    std::deque<int> {1, 2, 3}; // std::initialized_list
+    std::unique_ptr<Item1> ptr1 = std::make_unique<Item1>();
+    std::unique_ptr<Item1> ptr2(std::move(ptr1));
+    std::unique_ptr<Item1> ptr3(new Item1);
 
-    deq[2];
+    std::shared_ptr<Item1> ptr4 = std::make_shared<Item1>();
+    std::shared_ptr<Item1> ptr5(ptr4);
+    std::shared_ptr<Item1> ptr6(std::move(ptr3));
 
-    deq.front(); // элемент из начала
-    deq.back(); // элемент из конца
+    std::weak_ptr<Item1> ptr7(ptr6);
+    ptr7.lock();
 
-    deq.empty(); // пустой = True
-    deq.size();
-    deq.resize(15, 1);
+    Timer t;
+    {
+        AutoPtr<Item1> item1(new Item1);
+        AutoPtr<Item1> item2;
 
-    deq.clear();
-    deq.insert(deq.begin() + 3, 15);
-    deq.erase(deq.begin() + 3);
-    deq.push_back(15);
-    deq.pop_back(); // Просто удаляет элемент из конца
-    deq.emplace_back(15);
-    deq.emplace();
+        std::cout << "item1 is " << (item1.isNull() ? "null" : "not null") << std::endl;
+        std::cout << "item2 is " << (item2.isNull() ? "null" : "not null") << std::endl;
 
+        item2 = item1;
 
-    std::map<std::string, int> dict {
-        std::make_pair("Test", 1),
-        std::make_pair("Test_2", 2),
-    };
-    std::map<std::string, int> dict_2 {dict};
+        std::cout << "item1 is " << (item1.isNull() ? "null" : "not null") << std::endl;
+        std::cout << "item2 is " << (item2.isNull() ? "null" : "not null") << std::endl;
+    }
 
-    dict.empty(); // пустой = True
-    dict.size();
+    int val = 15;
+    int &l_ref = val; // l-value ref
+    int &&r_ref = 15; // r-value ref
 
-    dict.clear();
-    dict.insert(std::make_pair("Test_3", 15));
-    dict.emplace(std::make_pair("Test_4", 25));
-    dict.erase("Test_4");
+    Example &&r_ref_2 = {15};
+    std::cout << r_ref_2 << std::endl;
 
-    dict.count('Test_2');
-    auto it = dict.find("Test");
-    it = dict.lower_bound("Test_2");
-    it = dict.upper_bound("Test");
+    testFunc(15);
+    testFunc(val);
 
-    std::stack<int, std::deque<int>> stack;
+    std::cout << "#####" << std::endl;
+    {
+        SmartPtr<Item2> firtItem;
+        firtItem = generateItem();
+    }
+    std::cout << "#####" << std::endl;
 
-    stack.top();
-    stack.empty();
-    stack.size();
+    std::cout << "#####" << std::endl;
+    {
+        SmarterPtr<Item3> secondItem;
+        secondItem = generateItem(1);
+    }
+    std::cout << "#####" << std::endl;
 
-    stack.push(15);
-    stack.pop();
+    std::cout << "@@@@@" << std::endl;
+    CopyArray<int> c_arr(100000000);
+
+    for (int i = 0; i < c_arr.getLength(); i++)
+        c_arr[i] = i;
+
+    t.reset();
+    c_arr = cloneArrayAndDouble(c_arr);
+
+    std::cout << t.elapsed() << std::endl;
+    std::cout << "@@@@@" << std::endl;
+
+    std::cout << "@@@@@" << std::endl;
+    MoveArray<int> m_arr(100000000);
+
+    for (int i = 0; i < m_arr.getLength(); i++)
+        m_arr[i] = i;
+
+    t.reset();
+    m_arr = cloneArrayAndDouble(m_arr);
+
+    std::cout << t.elapsed() << std::endl;
+    std::cout << "@@@@@" << std::endl;
 
     return 0;
 }
