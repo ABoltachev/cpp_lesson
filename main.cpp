@@ -1,83 +1,93 @@
 #include <iostream>
+#include <string>
+#include <vector>
+#include <set>
+#include <map>
+#include <algorithm>
 
-#include <testlib/smart_pointer.hpp>
-#include <testlib/timer.hpp>
-#include <testlib/array.hpp>
-#include <memory>
+/*
+    Итераторы имеют следующие операторы:
+        operator*
+        operator++ и operator--
+        operator== и operator!=
+        operator=
+    Контейнеры имеют следующие методы для работы с operator=
+        begin() итератор на первый элемент
+        end() итератор на элемент, следующий за последним
+        cbegin() и cend() константные версии
+        rbegin() и rend() реверсивные версии
+
+    Операции можно проводить только с итераторами на одинаковые контейнеры и типы
+*/
+
+#include <testlib/tuple.hpp>
+
+template <typename T>
+const T& max(const T &a, const T &b) {
+    return (a > b) ? a : b;
+}
+
+int testFunc(int a, double b) {
+    return max<double>(a, b);
+}
 
 int main() {
-    std::unique_ptr<Item1> ptr1 = std::make_unique<Item1>();
-    std::unique_ptr<Item1> ptr2(std::move(ptr1));
-    std::unique_ptr<Item1> ptr3(new Item1);
+    Tuple<int, float, std::string> tuple(1, 3.14, "Hello, world!");
+    std::cout << get<0>(tuple) << ' ' << get<1>(tuple) << ' ' << get<2>(tuple) << std::endl;
+    // std::cout << get<3>(tuple); // Здесь будет ошибка компиляции
 
-    std::shared_ptr<Item1> ptr4 = std::make_shared<Item1>();
-    std::shared_ptr<Item1> ptr5(ptr4);
-    std::shared_ptr<Item1> ptr6(std::move(ptr3));
+    // Tuple<int, int> tuple2(1, 3);
+    std::tuple<int, double> tuple2(1, 3);
+    std::cout << call(testFunc, tuple2) << std::endl;
 
-    std::weak_ptr<Item1> ptr7(ptr6);
-    ptr7.lock();
+    std::vector<int> vect = {2, 3, 1};
+    // std::vector<int>::iterator it
+    std::vector<int>::const_iterator it = vect.begin() + 2;
+    for (int item : vect) {
+        std::cout << item << ' ';
+    }
+    std::cout << std::endl;
 
-    Timer t;
-    {
-        AutoPtr<Item1> item1(new Item1);
-        AutoPtr<Item1> item2;
+    for (;it != vect.end(); it++) {
+        std::cout << *it << ' ';
+    }
+    std::cout << std::endl;
 
-        std::cout << "item1 is " << (item1.isNull() ? "null" : "not null") << std::endl;
-        std::cout << "item2 is " << (item2.isNull() ? "null" : "not null") << std::endl;
+    std::set<int> set = {4, 5, 6};
+    std::set<int>::const_iterator it_1 = set.begin();
+    // std::advance(it_1, 2);
+    it_1++;
+    it_1++;
+    for (int item : set) {
+        std::cout << item << ' ';
+    }
+    std::cout << std::endl;
 
-        item2 = item1;
-
-        std::cout << "item1 is " << (item1.isNull() ? "null" : "not null") << std::endl;
-        std::cout << "item2 is " << (item2.isNull() ? "null" : "not null") << std::endl;
+    std::map<int, std::string> map = {
+        std::make_pair(1, "Test_1"),
+        std::make_pair(2, "Test_2"),
+        std::make_pair(3, "Test_3"),
+    };
+    for (auto item : map) {
+        std::cout << item.first << ' ' << item.second << std::endl;
     }
 
-    int val = 15;
-    int &l_ref = val; // l-value ref
-    int &&r_ref = 15; // r-value ref
-
-    Example &&r_ref_2 = {15};
-    std::cout << r_ref_2 << std::endl;
-
-    testFunc(15);
-    testFunc(val);
-
-    std::cout << "#####" << std::endl;
-    {
-        SmartPtr<Item2> firtItem;
-        firtItem = generateItem();
+    if (auto it = std::find(vect.begin(), vect.end(), 1); it != vect.end()) {
+        std::cout << "Result: " << *it << std::endl;
     }
-    std::cout << "#####" << std::endl;
-
-    std::cout << "#####" << std::endl;
-    {
-        SmarterPtr<Item3> secondItem;
-        secondItem = generateItem(1);
+    if (std::find(vect.begin(), vect.end(), 4) == vect.end()) {
+        std::cout << "There isn't 4" << std::endl;
     }
-    std::cout << "#####" << std::endl;
-
-    std::cout << "@@@@@" << std::endl;
-    CopyArray<int> c_arr(100000000);
-
-    for (int i = 0; i < c_arr.getLength(); i++)
-        c_arr[i] = i;
-
-    t.reset();
-    c_arr = cloneArrayAndDouble(c_arr);
-
-    std::cout << t.elapsed() << std::endl;
-    std::cout << "@@@@@" << std::endl;
-
-    std::cout << "@@@@@" << std::endl;
-    MoveArray<int> m_arr(100000000);
-
-    for (int i = 0; i < m_arr.getLength(); i++)
-        m_arr[i] = i;
-
-    t.reset();
-    m_arr = cloneArrayAndDouble(m_arr);
-
-    std::cout << t.elapsed() << std::endl;
-    std::cout << "@@@@@" << std::endl;
+    std::sort(vect.begin(), vect.end());
+    for (int item : vect) {
+        std::cout << item << ' ';
+    }
+    std::cout << std::endl;
+    std::sort(vect.begin(), vect.end(), [] (int a, int b) {return a > b;});
+    for (int item : vect) {
+        std::cout << item << ' ';
+    }
+    std::cout << std::endl;
 
     return 0;
 }
