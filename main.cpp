@@ -1,93 +1,92 @@
 #include <iostream>
-#include <string>
-#include <vector>
-#include <set>
-#include <map>
-#include <algorithm>
+#include <thread>
+#include <chrono>
+#include <mutex>
 
-/*
-    Итераторы имеют следующие операторы:
-        operator*
-        operator++ и operator--
-        operator== и operator!=
-        operator=
-    Контейнеры имеют следующие методы для работы с operator=
-        begin() итератор на первый элемент
-        end() итератор на элемент, следующий за последним
-        cbegin() и cend() константные версии
-        rbegin() и rend() реверсивные версии
+#include "testlib/test_lib.hpp"
 
-    Операции можно проводить только с итераторами на одинаковые контейнеры и типы
-*/
-
-#include <testlib/tuple.hpp>
-
-template <typename T>
-const T& max(const T &a, const T &b) {
-    return (a > b) ? a : b;
+void func(int a, std::string &str) {
+    std::cout << "Test" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::cout << str << std::endl;
 }
 
-int testFunc(int a, double b) {
-    return max<double>(a, b);
+std::timed_mutex g_t_mutex;
+
+void time_mutex() {
+    while (!g_t_mutex.try_lock_for(std::chrono::seconds(1))) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    g_t_mutex.unlock();
+    // std::chrono::time_point
+    // std::chrono::system_clock // зависит от системного времени
+    while (!g_t_mutex.try_lock_for(std::chrono::steady_clock::now() + std::chrono::seconds(10))) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    g_t_mutex.unlock();
 }
 
-int main() {
-    Tuple<int, float, std::string> tuple(1, 3.14, "Hello, world!");
-    std::cout << get<0>(tuple) << ' ' << get<1>(tuple) << ' ' << get<2>(tuple) << std::endl;
-    // std::cout << get<3>(tuple); // Здесь будет ошибка компиляции
+std::recursive_mutex g_r_mutex;
 
-    // Tuple<int, int> tuple2(1, 3);
-    std::tuple<int, double> tuple2(1, 3);
-    std::cout << call(testFunc, tuple2) << std::endl;
-
-    std::vector<int> vect = {2, 3, 1};
-    // std::vector<int>::iterator it
-    std::vector<int>::const_iterator it = vect.begin() + 2;
-    for (int item : vect) {
-        std::cout << item << ' ';
+void recursive_func(int n) {
+    if (n <= 0) {
+        return;
     }
-    std::cout << std::endl;
+    g_r_mutex.lock();
+    recursive_func(n - 1);
+    g_r_mutex.unlock();
+}
 
-    for (;it != vect.end(); it++) {
-        std::cout << *it << ' ';
-    }
-    std::cout << std::endl;
+// std::recursive_timed_mutex
 
-    std::set<int> set = {4, 5, 6};
-    std::set<int>::const_iterator it_1 = set.begin();
-    // std::advance(it_1, 2);
-    it_1++;
-    it_1++;
-    for (int item : set) {
-        std::cout << item << ' ';
-    }
-    std::cout << std::endl;
+std::shared_mutex g_s_mutex;
 
-    std::map<int, std::string> map = {
-        std::make_pair(1, "Test_1"),
-        std::make_pair(2, "Test_2"),
-        std::make_pair(3, "Test_3"),
-    };
-    for (auto item : map) {
-        std::cout << item.first << ' ' << item.second << std::endl;
+void shared_func() {
+    g_s_mutex.lock(); // эксклюзивное владение
+    // smth code
+    g_s_mutex.unlock();
+    g_s_mutex.lock_shared(); // общее владение (несколько потоков могут блокировать одновременно)
+    // smth code
+    g_s_mutex.unlock();
+}
+
+// std::shared_timed_mutex
+
+std::mutex g_mutex;
+
+void lock_guard() {
+    {
+        std::lock_guard<std::mutex> lg(g_mutex); // g_mutex блокируется при создании lg и освобождается при его уничтожении
     }
 
-    if (auto it = std::find(vect.begin(), vect.end(), 1); it != vect.end()) {
-        std::cout << "Result: " << *it << std::endl;
+    {
+        g_mutex.lock(); // g_mutex блокируется
+        std::lock_guard<std::mutex> lg(g_mutex, std::adopt_lock); // при создании lg мютекс запоминается им и освобождается при его уничтожении
     }
-    if (std::find(vect.begin(), vect.end(), 4) == vect.end()) {
-        std::cout << "There isn't 4" << std::endl;
+}
+
+void unique_lock() {
+    std::unique_lock ul(g_mutex, std::defer_lock);
+    ul.owns_lock(); // true если ul владеет мютексом
+}
+
+int main()
+{
+    // race_condition();
+    // atomic();
+    // mutex();
+    // dead_lock();
+
+    {
+        char buf[256] = "Hello, world!";
+
+        // std::thread t(func, 15, buf);
+        std::string str {buf};
+        std::thread t(func, 15, std::ref(str));
+        std::cout << t.get_id() << std::endl;
+        t.detach();
     }
-    std::sort(vect.begin(), vect.end());
-    for (int item : vect) {
-        std::cout << item << ' ';
-    }
-    std::cout << std::endl;
-    std::sort(vect.begin(), vect.end(), [] (int a, int b) {return a > b;});
-    for (int item : vect) {
-        std::cout << item << ' ';
-    }
-    std::cout << std::endl;
+    dead_lock_solved();
 
     return 0;
 }
