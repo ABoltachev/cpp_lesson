@@ -2,6 +2,8 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <memory>
+#include <condition_variable>
 
 #include "testlib/test_lib.hpp"
 
@@ -68,6 +70,71 @@ void lock_guard() {
 void unique_lock() {
     std::unique_lock ul(g_mutex, std::defer_lock);
     ul.owns_lock(); // true если ul владеет мютексом
+}
+
+struct Resources {
+    int x;
+}
+
+std::shared_ptr<Resources> g_ptr;
+
+void initResources(const std::string &name) {
+    if (!g_ptr) {
+        g_ptr.reset(new Resources);
+    }
+}
+
+std::once_flag g_resources_flag;
+
+void test_init() {
+    // 1
+    // std::unique_lock<std::mutex> lg(g_mutex);
+    // initResources();
+    // lg.unlock();
+
+    // 2
+    // if (!g_ptr) {
+    //     std::unique_lock<std::mutex> lg(g_mutex);
+    //     initResources();
+    // }
+
+    // 3
+    std::call_once(g_resources_flag, initResources, "Test"); // Аргументы не копируются используется std::forward
+
+    // 4
+    static std::shared_ptr<Resources> s_ptr(new Resources); // До 11 стандарта будет состояние гонки
+}
+
+/*
+    Notifier
+        1) Блокируем std::mutex (m1)
+        2) Выполняем модификацию общего флага. После снимается блокировка
+        3) notify_one notify_all
+    Waiter
+        1) С помощью std::unique_lock блокируем m1
+        2) Вызываем метод wait, wait_for или wait_until
+*/
+
+std::condition_variable g_cv;
+bool g_ready = false;
+
+void worker() {
+    std::lock_guard<std::mutex> lg(g_mutex);
+    g_ready = true;
+    g_cv.notify_one();
+    std::notify_all_at_thread_exit(g_cv, std::move(lg));
+}
+
+void waiter() {
+    // bool is_done = false;
+    // while (!is_done) {
+    //     std::this_thread::sleep_for(std::chrono::seconds(10));
+    // }
+
+    std::unique_lock<std::mutex> lg(g_mutex);
+    g_cv.wait(lg, []{ return g_ready; });
+    // smth work
+    lg.unlock();
 }
 
 int main()
