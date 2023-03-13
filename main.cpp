@@ -2,8 +2,11 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <shared_mutex>
 #include <memory>
 #include <condition_variable>
+#include <future>
+#include <vector>
 
 #include "testlib/test_lib.hpp"
 
@@ -22,7 +25,7 @@ void time_mutex() {
     g_t_mutex.unlock();
     // std::chrono::time_point
     // std::chrono::system_clock // зависит от системного времени
-    while (!g_t_mutex.try_lock_for(std::chrono::steady_clock::now() + std::chrono::seconds(10))) {
+    while (!g_t_mutex.try_lock_for(std::chrono::seconds(10))) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     g_t_mutex.unlock();
@@ -74,7 +77,7 @@ void unique_lock() {
 
 struct Resources {
     int x;
-}
+};
 
 std::shared_ptr<Resources> g_ptr;
 
@@ -119,7 +122,7 @@ std::condition_variable g_cv;
 bool g_ready = false;
 
 void worker() {
-    std::lock_guard<std::mutex> lg(g_mutex);
+    std::unique_lock<std::mutex> lg(g_mutex);
     g_ready = true;
     g_cv.notify_one();
     std::notify_all_at_thread_exit(g_cv, std::move(lg));
@@ -137,6 +140,43 @@ void waiter() {
     lg.unlock();
 }
 
+/*
+    С помощью std::promise возвращаем значение или эксепшен
+    std::furure для получения значения
+*/
+
+void test_promise(std::vector<int> arr, std::promise<int> acc_promise) {
+    int sum = 0;
+    for (int item : arr) {
+        sum += item;
+    }
+    acc_promise.set_value(sum);
+}
+
+std::vector<float> t_div(const std::vector<int> &arr, int den) {
+    if (den == 0) {
+        throw std::out_of_range("x==0"); // Бросаем исключение
+    }
+    std::vector<float> res;
+    for (int item : arr) {
+        res.push_back(item / den);
+    }
+    return res;
+}
+
+void test_div(std::vector<int> arr, int den, std::promise<std::vector<float>> div_promise) {
+    if (den == 0) {
+        div_promise.set_exception(std::make_exception_ptr(std::out_of_range("den==0")));
+        return;
+    }
+    try {
+        div_promise.set_value(t_div(arr, den));
+    }
+    catch (...) {
+        div_promise.set_exception(std::current_exception());
+    }
+}
+
 int main()
 {
     // race_condition();
@@ -144,16 +184,52 @@ int main()
     // mutex();
     // dead_lock();
 
-    {
-        char buf[256] = "Hello, world!";
+    // {
+    //     char buf[256] = "Hello, world!";
 
-        // std::thread t(func, 15, buf);
-        std::string str {buf};
-        std::thread t(func, 15, std::ref(str));
-        std::cout << t.get_id() << std::endl;
-        t.detach();
-    }
+    //     // std::thread t(func, 15, buf);
+    //     std::string str {buf};
+    //     std::thread t(func, 15, std::ref(str));
+    //     std::cout << t.get_id() << std::endl;
+    //     t.detach();
+    // }
     dead_lock_solved();
+
+    std::vector<int> arr = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    std::promise<int> acc_promise;
+    std::future<int> acc_future = acc_promise.get_future();
+    std::thread t1(test_promise, arr, std::move(acc_promise));
+
+    std::cout << "Result acc: " << acc_future.get() << std::endl;
+
+    t1.join();
+
+    std::vector<int> arr_2 = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    std::promise<std::vector<float>> div_promise;
+    std::future<std::vector<float>> div_future = div_promise.get_future();
+    // div_future.valid(); // false если не привязан к promise
+    std::thread t2(test_div, arr_2, 0, std::move(div_promise));
+    // div_future.get();
+    t2.detach();
+    std::vector<float> res;
+    try {
+        res = div_future.get();
+    }
+    catch (const std::out_of_range &ex) {
+        std::cerr << "Exception: " << ex.what() << std::endl;
+    }
+
+    std::future<std::vector<float>> div_furure_2 = std::async(std::launch::async, t_div, arr_2, 2);
+    // std::future<std::vector<float>> div_furure_2 = std::async(std::launch::deferred, t_div, arr_2, 2); // Не создает отдельный поток
+    // std::future<std::vector<float>> div_furure_2 = std::async(t_div, arr_2, 2); // равносильно std::launch::async | std::launch::deferred
+    div_furure_2.wait();
+    try {
+        res = div_furure_2.get();
+        std::cout << "get2" << std::endl;
+    }
+    catch (const std::out_of_range &ex) {
+        std::cerr << "Exception: " << ex.what() << std::endl;
+    }
 
     return 0;
 }
